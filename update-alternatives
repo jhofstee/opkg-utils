@@ -106,7 +106,7 @@ find_best_alt() {
 
 	link=$OPKG_OFFLINE_ROOT$(head -n 1 "$ad"/"$name")
 
-	prio=$(sed -ne "1!p" "$ad"/"$name" | sed -e "s/\(.*\) \(.*\)/\2 \1/g" | sort -nr | head -n 1 | sed 's/ [^ ]*$//')
+	prio=$(sed -ne "1!p" "$ad"/"$name" | sed -e "s/\(.*\) \(.*\)/\2 \1/g" | sort -nr | head -n 1 | sed 's/\s.*$//')
 	if [ -z "$prio" ]; then
 		echo "update-alternatives: removing $link as no more alternatives exist for it"
 		rm "$ad"/"$name"
