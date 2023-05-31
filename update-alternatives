@@ -48,18 +48,18 @@ register_alt() {
 	local name="$1"
 	local link="$2"
 
-	if [ ! -d $ad ]; then
-		mkdir -p $ad
+	if [ ! -d "$ad" ]; then
+		mkdir -p "$ad"
 	fi
 
 	if [ -e "$ad/$name" ]; then
-		local olink=$(head -n 1 $ad/$name)
+		local olink="$(head -n 1 "$ad"/"$name")"
 		if [ "$link" != "$olink" ]; then
 			echo "update-alternatives: renaming $name link from $olink to $link"
-			local link_str=$(echo $link | protect_slashes)
-			sed -e "1s/.*/$link_str/" $ad/$name > $ad/$name.new
-			mv $ad/$name.new $ad/$name
-			mv $OPKG_OFFLINE_ROOT$olink $OPKG_OFFLINE_ROOT$link
+			local link_str="$(echo "$link" | protect_slashes)"
+			sed -e "1s/.*/$link_str/" "$ad"/"$name" > "$ad"/"$name".new
+			mv "$ad"/"$name".new "$ad"/"$name"
+			mv "$OPKG_OFFLINE_ROOT""$olink" "$OPKG_OFFLINE_ROOT""$link"
 		fi
 	else
 		echo "$link" > "$ad/$name"
@@ -81,11 +81,11 @@ remove_alt() {
 	local name="$1"
 	local path="$2"
 
-	[ ! -f $ad/$name ] && return 0
+	[ ! -f "$ad"/"$name" ] && return 0
 
-	path=$(echo $path | protect_slashes | protect_special_character)
-	sed -ne "/^$path\s.*/!p" $ad/$name > $ad/$name.new
-	mv $ad/$name.new $ad/$name
+	path=$(echo "$path" | protect_slashes | protect_special_character)
+	sed -ne "/^$path\s.*/!p" "$ad"/"$name" > "$ad"/"$name".new
+	mv "$ad"/"$name".new "$ad"/"$name"
 }
 
 add_alt() {
@@ -93,38 +93,38 @@ add_alt() {
 	local name="$1"
 	local path="$2"
 	local priority="$3"
-	remove_alt $name $path
-	if grep -qw "$priority" $ad/$name; then
+	remove_alt "$name" "$path"
+	if grep -qw "$priority" "$ad"/"$name"; then
 		echo "Warn: update-alternatives: $name has multiple providers with the same priority, please check $ad/$name for details"
 	fi
-	echo "$path $priority" >> $ad/$name
+	echo "$path $priority" >> "$ad"/"$name"
 }
 
 find_best_alt() {
 	[ $# -lt 1 ] && return 1
-	[ ! -f $ad/$name ] && return 0
+	[ ! -f "$ad"/"$name" ] && return 0
 
-	link=$OPKG_OFFLINE_ROOT$(head -n 1 $ad/$name)
+	link=$OPKG_OFFLINE_ROOT$(head -n 1 "$ad"/"$name")
 
-	prio=$(sed -ne "1!p" $ad/$name | sed -e "s/\(.*\) \(.*\)/\2 \1/g" | sort -nr | head -n 1 | sed 's/ [^ ]*$//')
+	prio=$(sed -ne "1!p" "$ad"/"$name" | sed -e "s/\(.*\) \(.*\)/\2 \1/g" | sort -nr | head -n 1 | sed 's/ [^ ]*$//')
 	if [ -z "$prio" ]; then
 		echo "update-alternatives: removing $link as no more alternatives exist for it"
-		rm $ad/$name
-		if [ -L $link ]; then
-			rm $link
+		rm "$ad"/"$name"
+		if [ -L "$link" ]; then
+			rm "$link"
 		fi
 		return 0
 	fi
 
 	## Find last line with highest priority.
-	path=$(grep "${prio}$" $ad/$name | tail -n 1 | sed 's/ [^ ]*$//')
+	path=$(grep "${prio}$" "$ad"/"$name" | tail -n 1 | sed 's/ [^ ]*$//')
 
-	if [ ! -e $link -o -L $link ]; then
-		local link_dir=$(dirname $link)
-		if [ ! -d $link_dir ]; then
-			mkdir -p $link_dir
+	if [ ! -e "$link" -o -L "$link" ]; then
+		local link_dir="$(dirname "$link")"
+		if [ ! -d "$link_dir" ]; then
+			mkdir -p "$link_dir"
 		fi
-		ln -snf $path $link
+		ln -snf "$path" "$link"
 		echo "update-alternatives: Linking $link to $path"
 	else
 		echo "update-alternatives: Error: not linking $link to $path since $link exists and is not a link"
@@ -143,14 +143,14 @@ do_install() {
 	local path="$3"
 	local priority="$4"
 
-	path=$(echo $path | sed 's|/\+|/|g')
+	path=$(echo "$path" | sed 's|/\+|/|g')
 
 	# This is a bad hack, but I haven't thought of a cleaner solution yet...
-	[ -n "$OPKG_OFFLINE_ROOT" ] && path=$(echo $path | sed "s|^$OPKG_OFFLINE_ROOT/*|/|")
+	[ -n "$OPKG_OFFLINE_ROOT" ] && path=$(echo "$path" | sed "s|^$OPKG_OFFLINE_ROOT/*|/|")
 
-	register_alt $name $link
-	add_alt $name $path $priority
-	find_best_alt $name
+	register_alt "$name" "$link"
+	add_alt "$name" "$path" "$priority"
+	find_best_alt "$name"
 }
 
 do_remove() {
@@ -160,13 +160,13 @@ do_remove() {
 	local name="$1"
 	local path="$2"
 
-	path=$(echo $path | sed 's|/\+|/|g')
+	path=$(echo "$path" | sed 's|/\+|/|g')
 
 	# This is a bad hack, but I haven't thought of a cleaner solution yet...
-	[ -n "$OPKG_OFFLINE_ROOT" ] && path=$(echo $path | sed "s|^$OPKG_OFFLINE_ROOT/*|/|")
+	[ -n "$OPKG_OFFLINE_ROOT" ] && path=$(echo "$path" | sed "s|^$OPKG_OFFLINE_ROOT/*|/|")
 
-	remove_alt $name $path
-	find_best_alt $name
+	remove_alt "$name" "$path"
+	find_best_alt "$name"
 }
 
 ###
@@ -183,11 +183,11 @@ while [ $# -gt 0 ]; do
 		exit 0
 		;;
 	--install)
-		do_install $*
+		do_install "$@"
 		exit $?
 		;;
 	--remove)
-		do_remove $*
+		do_remove "$@"
 		exit $?
 		;;
 	*)
